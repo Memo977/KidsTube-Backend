@@ -127,7 +127,32 @@ const userGetEmail = function (email) {
   return User.findOne({ email });
 };
 
+const confirmEmail = async (req, res) => {
+  const { id } = req.query;
+  
+  if (!id) {
+      return res.status(400).json({ error: "ID parameter is required" });
+  }
+
+  try {
+      const user = await User.findById(id);
+
+      if (!user) {
+          return res.status(404).json({ error: "User doesn't exist" });
+      }
+
+      user.state = true;
+      await user.save();
+      res.status(200).sendFile(path.join(__dirname, 'views', 'confirmation.html'));
+
+  } catch (err) {
+      console.log('Error while confirming the email', err);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   userPost,
-  userGetEmail
+  userGetEmail,
+  confirmEmail
 };

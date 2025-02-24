@@ -19,11 +19,13 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
 const { userPost } = require("./controllers/userController.js");
+const { userPost, confirmEmail } = require("./controllers/userController.js");
 
 app.get('/', (req, res) => {
   res.send('API funcionando correctamente');
 });
 
 app.post("/api/users", userPost);
+app.get("/api/users/confirm", confirmEmail);
 
 app.listen(3000, () => console.log(`App listening on port 3000!`));
