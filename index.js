@@ -31,6 +31,13 @@ app.get('/', (req, res) => {
   res.send('API funcionando correctamente');
 });
 
+// Función para desencriptar valores
+const decryptValue = (encryptedValue) => {
+  const bytes = CryptoJS.AES.decrypt(encryptedValue, 'secret key');
+  const originalValue = bytes.toString(CryptoJS.enc.Utf8);
+  return originalValue;
+};
+
 // Login con JWT
 app.post("/api/session", function (req, res, next) {
   if (req.body.username && req.body.password) {
@@ -43,8 +50,7 @@ app.post("/api/session", function (req, res, next) {
       }
 
       // Desencriptar la contraseña almacenada
-      const bytes = CryptoJS.AES.decrypt(savedUser.password, 'secret key');
-      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      const decryptedPassword = decryptValue(savedUser.password);
 
       // Comparar la contraseña en texto plano con la desencriptada
       if (req.body.username === savedUser.email && req.body.password === decryptedPassword) {
@@ -91,7 +97,65 @@ app.post("/api/session", function (req, res, next) {
   }
 });
 
-// Rutas de usuario
+// Middleware de autenticación basado en tokens
+app.use(function (req, res, next) {
+  let { id, register } = req.query;
+  if (req.headers['register'] || register === "true") {
+    next();
+  } else {
+    if (req.headers["authorization"]) {
+      const token = req.headers['authorization'].split(' ')[1];
+      try {
+        jwt.verify(token, secretKey, (err, decoded) => {
+          if (err) {
+            return res.status(401).send({
+              error: "Unauthorized"
+            });
+          }
+          req.user = decoded;  // Aquí se agrega la información del usuario al objeto `req`
+          console.log('Welcome', decoded.name);
+          next();
+        });
+      } catch (e) {
+        res.status(422).send({
+          error: "There was an error: " + e.message
+        });
+      }
+    } else {
+      res.status(401).send({
+        error: "Unauthorized"
+      });
+    }
+  }
+});
+
+// Ruta protegida para cerrar sesión
+app.delete("/api/session", function (req, res) {
+  if (req.headers["authorization"]) {
+    const token = req.headers['authorization'].split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, secretKey);
+      deleteSession(decoded.email)
+        .then((result) => {
+          if (result.deletedCount > 0) {
+            res.status(200).json({ message: "Logged out successfully" });
+          } else {
+            res.status(404).json({ message: "Session not found" });
+          }
+        })
+        .catch(err => {
+          console.error("Error deleting session", err);
+          res.status(500).json({ error: "Error during logout" });
+        });
+    } catch(e) {
+      res.status(401).json({ error: "Invalid token" });
+    }
+  } else {
+    res.status(401).json({ error: "No authorization token provided" });
+  }
+});
+
+// Rutas de usuario (no protegidas)
 app.post("/api/users", userPost);
 app.get("/api/users/confirm", confirmEmail);
 
