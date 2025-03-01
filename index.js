@@ -25,7 +25,14 @@ app.use(bodyParser.json());
 const { saveSession, getSession, deleteSession } = require('./controllers/sessionController.js');
 
 // Métodos de usuarios
-const { userPost, userGetEmail, confirmEmail } = require("./controllers/userController.js");
+const { 
+  userPost, 
+  userDelete, 
+  userGet, 
+  userPatch, 
+  userGetEmail, 
+  confirmEmail 
+} = require("./controllers/userController.js");
 
 app.get('/', (req, res) => {
   res.send('API funcionando correctamente');
@@ -155,8 +162,14 @@ app.delete("/api/session", function (req, res) {
   }
 });
 
-// Rutas de usuario (no protegidas)
+// Rutas para usuarios
 app.post("/api/users", userPost);
+app.delete("/api/users", userDelete);
+app.get("/api/users", userGet);
+app.patch("/api/users", userPatch);
+app.put("/api/users", userPatch);
+
+// Ruta para confirmar email
 app.get("/api/users/confirm", confirmEmail);
 
 app.listen(3000, () => console.log(`App listening on port 3000!`));

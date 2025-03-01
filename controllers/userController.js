@@ -151,8 +151,131 @@ const confirmEmail = async (req, res) => {
   }
 };
 
+/**
+ * Delete a user
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+const userDelete = async (req, res) => {
+  if (req.query && req.query.id) {
+    try {
+      const user = await User.findById(req.query.id).exec();
+      if (!user) {
+        res.status(404);
+        console.log('Error while querying the user');
+        return res.json({ error: "User doesn't exist" });
+      }
+
+      // Validar que el usuario logueado es el dueño de la cuenta
+      if (user._id.toString() !== req.user.id) {
+        return res.status(403).json({ error: "You are not authorized to delete this user" });
+      }
+
+      // Eliminar sesiones del usuario administrador
+      await deleteSession(user.email);
+
+      // Eliminar al usuario administrador
+      await user.deleteOne();
+
+      // Respuesta con mensaje de éxito
+      res.status(200).json({ message: "User deleted successfully" });
+
+    } catch (err) {
+      res.status(422);
+      console.log('Error while deleting the user', err);
+      res.json({ error: 'There was an error deleting the user' });
+    }
+  } else {
+    res.status(404).json({ error: "User doesn't exist" });
+  }
+};
+
+/** 
+ * Get one or all users
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+const userGet = (req, res) => {
+  if (req.query && req.query.id) {
+    // Obtener un usuario específico
+    User.findById(req.query.id)
+      .then((user) => {
+        res.json(user);
+      })
+      .catch(err => {
+        res.status(404);
+        console.log('error while queryting the user', err)
+        res.json({ error: "User doesnt exist" })
+      });
+  } else {
+    // Obtener todos los usuarios
+    User.find()
+      .then(user => {
+        res.json(user);
+      })
+      .catch(err => {
+        res.status(422);
+        res.json({ "error": err });
+      });
+  }
+};
+
+/**
+ * Updates a user
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+const userPatch = async (req, res) => {
+  if (!req.query || !req.query.id) {
+      return res.status(400).json({ error: "Bad request: ID parameter is required" });
+  }
+
+  try {
+      const user = await User.findById(req.query.id);
+
+      if (!user) {
+          return res.status(404).json({ error: "User doesn't exist" });
+      }
+
+      // Validar que el usuario logueado es el dueño de la cuenta
+      if (user._id.toString() !== req.user.id) {
+          return res.status(403).json({ error: "You are not authorized to edit this user" });
+      }
+
+      // Actualizar los campos proporcionados
+      if (req.body.email) user.email = req.body.email;
+      if (req.body.password) user.password = CryptoJS.AES.encrypt(req.body.password, 'secret key').toString();
+      if (req.body.repeat_password) user.repeat_password = CryptoJS.AES.encrypt(req.body.repeat_password, 'secret key').toString();
+      if (req.body.phone_number) user.phone_number = req.body.phone_number;
+      if (req.body.pin) user.pin = req.body.pin;
+      if (req.body.name) user.name = req.body.name;
+      if (req.body.last_name) user.last_name = req.body.last_name;
+      if (req.body.country) user.country = req.body.country;
+      if (req.body.birthdate) user.birthdate = req.body.birthdate;
+
+      const updatedUser = await user.save();
+
+      // Respuesta con mensaje y datos actualizados
+      res.status(200).json({
+          message: "User updated successfully",
+          data: updatedUser
+      });
+
+  } catch (err) {
+      console.log('Error while updating the user', err);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
   userPost,
+  userDelete,
+  userGet,
+  userPatch,
   userGetEmail,
   confirmEmail
 };
