@@ -35,7 +35,12 @@ const {
 } = require("./controllers/userController.js");
 
 // Métodos de usuarios restringidos
-const { restricted_usersPost } = require("./controllers/restricted_usersController.js");
+const {
+  restricted_usersPost,
+  restricted_usersDelete,
+  restricted_usersGet,
+  restricted_usersPatch
+} = require("./controllers/restricted_usersController.js");
 
 app.get('/', (req, res) => {
   res.send('API funcionando correctamente');
@@ -177,5 +182,9 @@ app.get("/api/users/confirm", confirmEmail);
 
 // Rutas para usuarios restringidos
 app.post("/api/restricted_users", restricted_usersPost);
+app.delete("/api/restricted_users", restricted_usersDelete);
+app.get("/api/restricted_users", restricted_usersGet);
+app.patch("/api/restricted_users", restricted_usersPatch);
+app.put("/api/restricted_users", restricted_usersPatch); // Alias para PATCH
 
 app.listen(3000, () => console.log(`App listening on port 3000!`));
