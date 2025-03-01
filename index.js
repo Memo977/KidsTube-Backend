@@ -34,6 +34,9 @@ const {
   confirmEmail 
 } = require("./controllers/userController.js");
 
+// Métodos de usuarios restringidos
+const { restricted_usersPost } = require("./controllers/restricted_usersController.js");
+
 app.get('/', (req, res) => {
   res.send('API funcionando correctamente');
 });
@@ -171,5 +174,8 @@ app.put("/api/users", userPatch);
 
 // Ruta para confirmar email
 app.get("/api/users/confirm", confirmEmail);
+
+// Rutas para usuarios restringidos
+app.post("/api/restricted_users", restricted_usersPost);
 
 app.listen(3000, () => console.log(`App listening on port 3000!`));
