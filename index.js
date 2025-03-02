@@ -123,7 +123,6 @@ app.use(function (req, res, next) {
             });
           }
           req.user = decoded;  // Aquí se agrega la información del usuario al objeto `req`
-          console.log('Welcome', decoded.name);
           next();
         });
       } catch (e) {
