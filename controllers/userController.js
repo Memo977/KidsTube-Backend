@@ -12,6 +12,13 @@ const GMAIL_PASS = process.env.GMAIL_PASS;
 
 const nodemailer = require('nodemailer');
 
+// Función para desencriptar valores
+const decryptValue = (encryptedValue) => {
+  const bytes = CryptoJS.AES.decrypt(encryptedValue, 'secret key');
+  const originalValue = bytes.toString(CryptoJS.enc.Utf8);
+  return originalValue;
+};
+
 const isAtLeast18YearsOld = (birthdate) => {
   const today = new Date();
   const birthdateObj = new Date(birthdate);
@@ -54,6 +61,7 @@ const sendConfirmationEmail = (user) => {
   });
 };
 
+
 /**
  * Creates a user
  *
@@ -71,7 +79,7 @@ const userPost = (req, res) => {
   user.last_name = req.body.last_name;
   user.country = req.body.country;
   user.birthdate = req.body.birthdate;
-  user.state = false; // Por defecto, la cuenta no está verificada
+  user.state = req.body.state;
 
   // Verifica si el usuario tiene al menos 18 años
   if (!isAtLeast18YearsOld(user.birthdate)) {
@@ -99,9 +107,9 @@ const userPost = (req, res) => {
       })
       .then(savedUser => {
         if (savedUser) {
-          // Enviar correo de confirmación
-          sendConfirmationEmail(savedUser);
-          
+          if(savedUser.state == false){
+            sendConfirmationEmail(savedUser);
+          }
           res.status(201); // CREATED
           res.header({
             'location': `/api/users/?id=${savedUser.id}`
@@ -122,34 +130,6 @@ const userPost = (req, res) => {
     res.json({
       error: 'No valid data provided for user'
     });
-  }
-};
-
-const userGetEmail = function (email) {
-  return User.findOne({ email });
-};
-
-const confirmEmail = async (req, res) => {
-  const { id } = req.query;
-  
-  if (!id) {
-      return res.status(400).json({ error: "ID parameter is required" });
-  }
-
-  try {
-      const user = await User.findById(id);
-
-      if (!user) {
-          return res.status(404).json({ error: "User doesn't exist" });
-      }
-
-      user.state = true;
-      await user.save();
-      res.status(200).sendFile(path.join(__dirname, 'views', 'confirmation.html'));
-
-  } catch (err) {
-      console.log('Error while confirming the email', err);
-      res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -178,7 +158,7 @@ const userDelete = async (req, res) => {
       // Eliminar todos los usuarios restringidos asociados a este administrador
       await Restricted_users.deleteMany({ AdminId: user._id.toString() });
 
-      // Eliminar sesiones del usuario administrador
+      // Eliminar sesiones del usuario administrador (opcional)
       await deleteSession(user.email);
 
       // Eliminar al usuario administrador
@@ -197,15 +177,14 @@ const userDelete = async (req, res) => {
   }
 };
 
-/** 
- * Get one or all users
- *
- * @param {*} req
- * @param {*} res
- */
+/** Get one or all users
+*
+* @param {*} req
+* @param {*} res
+*/
 const userGet = (req, res) => {
   if (req.query && req.query.id) {
-    // Obtener un usuario específico
+    // filter and get one video
     User.findById(req.query.id)
       .then((user) => {
         res.json(user);
@@ -216,7 +195,7 @@ const userGet = (req, res) => {
         res.json({ error: "User doesnt exist" })
       });
   } else {
-    // Obtener todos los usuarios
+    // get all videos
     User.find()
       .then(user => {
         res.json(user);
@@ -228,12 +207,17 @@ const userGet = (req, res) => {
   }
 };
 
+const userGetEmail = function (email) {
+  return User.findOne({ email });
+};
+
 /**
  * Updates a user
  *
  * @param {*} req
  * @param {*} res
  */
+
 const userPatch = async (req, res) => {
   if (!req.query || !req.query.id) {
       return res.status(400).json({ error: "Bad request: ID parameter is required" });
@@ -276,12 +260,35 @@ const userPatch = async (req, res) => {
   }
 };
 
+const confirmEmail = async (req, res) => {
+  const { id } = req.query;
+  
+  if (!id) {
+      return res.status(400).json({ error: "ID parameter is required" });
+  }
+
+  try {
+      const user = await User.findById(id);
+
+      if (!user) {
+          return res.status(404).json({ error: "User doesn't exist" });
+      }
+
+      user.state = true;
+      await user.save();
+      res.status(200).sendFile(path.join(__dirname, 'views', 'confirmation.html'));
+
+  } catch (err) {
+      console.log('Error while confirming the email', err);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
 module.exports = {
   userPost,
-  userDelete,
   userGet,
   userPatch,
+  userDelete,
   userGetEmail,
   confirmEmail
 };

@@ -24,29 +24,24 @@ app.use(bodyParser.json());
 // Métodos de sesión
 const { saveSession, getSession, deleteSession } = require('./controllers/sessionController.js');
 
-// Métodos de usuarios
-const { 
-  userPost, 
-  userDelete, 
-  userGet, 
-  userPatch, 
-  userGetEmail, 
-  confirmEmail 
-} = require("./controllers/userController.js");
-
 // Métodos de usuarios restringidos
 const {
   restricted_usersPost,
-  restricted_usersDelete,
   restricted_usersGet,
-  restricted_usersPatch
+  restricted_usersPatch,
+  restricted_usersDelete
 } = require("./controllers/restricted_usersController.js");
 
-app.get('/', (req, res) => {
-  res.send('API funcionando correctamente');
-});
+// Métodos de usuarios
+const {
+  userPost,
+  userDelete,
+  userGet,
+  userPatch,
+  userGetEmail,
+  confirmEmail 
+} = require("./controllers/userController.js");
 
-// Función para desencriptar valores
 const decryptValue = (encryptedValue) => {
   const bytes = CryptoJS.AES.decrypt(encryptedValue, 'secret key');
   const originalValue = bytes.toString(CryptoJS.enc.Utf8);
@@ -170,21 +165,21 @@ app.delete("/api/session", function (req, res) {
   }
 });
 
+// Rutas protegidas para usuarios restringidos
+app.post("/api/restricted_users", restricted_usersPost);
+app.delete("/api/restricted_users", restricted_usersDelete);
+app.get("/api/restricted_users", restricted_usersGet);
+app.patch("/api/restricted_users", restricted_usersPatch);
+app.put("/api/restricted_users", restricted_usersPatch);
+
 // Rutas para usuarios
-app.post("/api/users", userPost);
 app.delete("/api/users", userDelete);
+app.post("/api/users", userPost);
 app.get("/api/users", userGet);
 app.patch("/api/users", userPatch);
 app.put("/api/users", userPatch);
 
 // Ruta para confirmar email
 app.get("/api/users/confirm", confirmEmail);
-
-// Rutas para usuarios restringidos
-app.post("/api/restricted_users", restricted_usersPost);
-app.delete("/api/restricted_users", restricted_usersDelete);
-app.get("/api/restricted_users", restricted_usersGet);
-app.patch("/api/restricted_users", restricted_usersPatch);
-app.put("/api/restricted_users", restricted_usersPatch); // Alias para PATCH
 
 app.listen(3000, () => console.log(`App listening on port 3000!`));
