@@ -5,6 +5,8 @@ const path = require('path');
 const CryptoJS = require('crypto-js');
 app.use(express.static(path.join(__dirname, 'public')));
 const User = require("../models/userModel");
+const Restricted_users = require("../models/restricted_usersModel");
+const { deleteSession } = require('./sessionController');
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
 
@@ -157,6 +159,7 @@ const confirmEmail = async (req, res) => {
  * @param {*} req
  * @param {*} res
  */
+
 const userDelete = async (req, res) => {
   if (req.query && req.query.id) {
     try {
@@ -171,6 +174,9 @@ const userDelete = async (req, res) => {
       if (user._id.toString() !== req.user.id) {
         return res.status(403).json({ error: "You are not authorized to delete this user" });
       }
+
+      // Eliminar todos los usuarios restringidos asociados a este administrador
+      await Restricted_users.deleteMany({ AdminId: user._id.toString() });
 
       // Eliminar sesiones del usuario administrador
       await deleteSession(user.email);
