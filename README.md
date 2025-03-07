@@ -1,39 +1,56 @@
 # API de YoutubeKids - Documentación
 
 ## Descripción
-Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones y perfiles restringidos para una plataforma de streaming.
+Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones y perfiles restringidos para una plataforma de streaming, con énfasis en la seguridad y mejores prácticas modernas.
 
 ## Características principales
-- Autenticación y autorización con JWT
+- Autenticación y autorización con JWT y sistema de revocación de tokens
 - Registro de usuarios con confirmación por correo electrónico
-- Gestión de sesiones de usuario
+- Hash seguro de contraseñas con bcrypt
 - Creación de perfiles restringidos por PIN
 - Validación de permisos basada en roles
+- Arquitectura modular y mantenible
 
 ## Tecnologías utilizadas
 - Node.js
 - Express.js
 - MongoDB con Mongoose
-- JSON Web Tokens
-- CryptoJS para encriptación
+- JSON Web Tokens (JWT)
+- bcrypt para hash seguro de contraseñas
 - Nodemailer para envío de correos
 
 ## Estructura de carpetas
 ```
 /
+├── config/
+│   └── database.js               # Configuración de conexión a la BD
+│
 ├── controllers/
-│   ├── sessionController.js
-│   ├── userController.js
-│   ├── restricted_usersController.js
+│   ├── sessionController.js      # Lógica para manejo de sesiones
+│   ├── userController.js         # Lógica para manejo de usuarios
+│   ├── restricted_usersController.js  # Lógica para perfiles restringidos
 │   └── views/
-│       └── confirmation.html
+│       └── confirmation.html     # Plantilla para confirmación de email
+│
+├── middleware/
+│   ├── authMiddleware.js         # Middleware de autenticación
+│   └── errorMiddleware.js        # Middleware para manejo de errores
+│
 ├── models/
-│   ├── userModel.js
-│   ├── sessionModel.js
-│   └── restricted_usersModel.js
-├── .env
-├── index.js
-
+│   ├── blacklistedTokenModel.js  # Modelo para tokens revocados
+│   ├── restricted_usersModel.js  # Modelo para perfiles restringidos
+│   ├── sessionModel.js           # Modelo para sesiones 
+│   └── userModel.js              # Modelo para usuarios
+│
+├── routes/
+│   ├── authRoutes.js             # Rutas de autenticación
+│   ├── restrictedUserRoutes.js   # Rutas para perfiles restringidos
+│   └── userRoutes.js             # Rutas para usuarios
+│
+├── .env                          
+├── .gitignore                    
+├── index.js                      
+└── package.json                  
 ```
 
 ## Instalación
@@ -47,7 +64,22 @@ Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones
    GMAIL_USER=tu_correo@gmail.com
    GMAIL_PASS=tu_contraseña_app
    ```
-4. Ejecutar `node index.js` o `npm start` para iniciar el servidor
+4. Ejecutar `npm start` para iniciar el servidor en producción o `npm run dev` para modo desarrollo con nodemon
+
+## Seguridad mejorada
+
+- **Hash de contraseñas**: Implementación de bcrypt para almacenamiento seguro de contraseñas
+- **Revocación de tokens JWT**: Sistema para invalidar tokens después del cierre de sesión
+- **Limpieza automática**: Los tokens revocados se eliminan automáticamente después de su expiración
+- **Validación robusta**: Verificación de datos de entrada y manejo consistente de errores
+- **Middleware de autenticación**: Protección centralizada de rutas sensibles
+
+## Patrones de diseño implementados
+
+- **MVC (Modelo-Vista-Controlador)**: Separación clara entre modelos de datos, lógica de negocio y rutas
+- **Middleware**: Uso de middleware para funcionalidades transversales
+- **Configuración centralizada**: Variables de entorno y configuración de base de datos en ubicaciones específicas
+- **Manejo de errores**: Sistema centralizado para captura y procesamiento de errores
 
 ## Rutas disponibles
 
@@ -55,7 +87,7 @@ Esta API REST proporciona funcionalidades para la gestión de usuarios, sesiones
 - `POST /api/users` - Registro de usuario
 - `GET /api/users/confirm` - Confirmación de correo electrónico
 - `POST /api/session` - Inicio de sesión
-- `DELETE /api/session` - Cierre de sesión
+- `DELETE /api/session` - Cierre de sesión (revoca el token JWT)
 
 ### Usuarios
 - `GET /api/users` - Obtener todos los usuarios (requiere autenticación)

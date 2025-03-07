@@ -1,184 +1,49 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+
+// Configuración de la base de datos
+const connectDatabase = require('./config/database');
+
+// Middlewares
+const authenticate = require('./middleware/authMiddleware');
+const { notFoundHandler, errorHandler } = require('./middleware/errorMiddleware');
+
+// Rutas
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const restrictedUserRoutes = require('./routes/restrictedUserRoutes');
+
+// Inicializar la aplicación
 const app = express();
-const mongoose = require("mongoose");
-const CryptoJS = require('crypto-js');
-const jwt = require('jsonwebtoken');
-const secretKey = process.env.JWT_SECRET;
+const PORT = process.env.PORT || 3000;
 
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-const cors = require("cors");
+// Middleware global
 app.use(cors({
   domains: '*',
   methods: "*"
 }));
-
-const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
-// Métodos de sesión
-const { saveSession, getSession, deleteSession } = require('./controllers/sessionController.js');
+// Conectar a la base de datos
+connectDatabase();
 
-// Métodos de usuarios restringidos
-const {
-  restricted_usersPost,
-  restricted_usersGet,
-  restricted_usersPatch,
-  restricted_usersDelete
-} = require("./controllers/restricted_usersController.js");
+// Rutas de la API
+app.use('/api/session', authRoutes);
+app.use('/api/users', userRoutes);
 
-// Métodos de usuarios
-const {
-  userPost,
-  userDelete,
-  userGet,
-  userPatch,
-  userGetEmail,
-  confirmEmail 
-} = require("./controllers/userController.js");
+// Middleware de autenticación para las rutas protegidas
+app.use(authenticate);
 
-const decryptValue = (encryptedValue) => {
-  const bytes = CryptoJS.AES.decrypt(encryptedValue, 'secret key');
-  const originalValue = bytes.toString(CryptoJS.enc.Utf8);
-  return originalValue;
-};
+// Rutas protegidas
+app.use('/api/restricted_users', restrictedUserRoutes);
 
-// Login con JWT
-app.post("/api/session", function (req, res, next) {
-  if (req.body.username && req.body.password) {
-    const savedUser = userGetEmail(req.body.username);
-    savedUser.then(function (savedUser) {
-      if (!savedUser) {
-        return res.status(422).json({
-          error: 'Invalid username or password'
-        });
-      }
+// Manejo de errores
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-      // Desencriptar la contraseña almacenada
-      const decryptedPassword = decryptValue(savedUser.password);
-
-      // Comparar la contraseña en texto plano con la desencriptada
-      if (req.body.username === savedUser.email && req.body.password === decryptedPassword) {
-        if (savedUser.state === false) {
-          return res.status(403).json({
-            error: 'Tu cuenta no ha sido confirmada. Por favor, revisa tu correo para confirmar tu registro.'
-          });
-        }
-
-        const token = jwt.sign({
-          email: savedUser.email,
-          name: savedUser.name,
-          permission: ['create', 'edit', 'delete', 'get'],
-          id: savedUser._id
-        }, secretKey, { expiresIn: '24h' });
-
-        saveSession(savedUser.email)
-          .then(() => {
-            res.status(201).json({
-              token
-            });
-          })
-          .catch(err => {
-            console.log('Error saving session', err);
-            res.status(500).json({
-              error: 'Error saving session'
-            });
-          });
-      } else {
-        res.status(422).json({
-          error: 'Invalid username or password'
-        });
-      }
-    }).catch(function (err) {
-      console.log('Error getting the saved user', err);
-      res.status(422).send({
-        error: "There was an error: " + err.message
-      });
-    });
-  } else {
-    res.status(422).json({
-      error: 'Invalid username or password'
-    });
-  }
+// Iniciar el servidor
+app.listen(PORT, () => {
+  console.log(`API server running on port ${PORT}`);
 });
-
-// Middleware de autenticación basado en tokens
-app.use(function (req, res, next) {
-  let { id, register } = req.query;
-  if (req.headers['register'] || register === "true") {
-    next();
-  } else {
-    if (req.headers["authorization"]) {
-      const token = req.headers['authorization'].split(' ')[1];
-      try {
-        jwt.verify(token, secretKey, (err, decoded) => {
-          if (err) {
-            return res.status(401).send({
-              error: "Unauthorized"
-            });
-          }
-          req.user = decoded;  // Aquí se agrega la información del usuario al objeto `req`
-          next();
-        });
-      } catch (e) {
-        res.status(422).send({
-          error: "There was an error: " + e.message
-        });
-      }
-    } else {
-      res.status(401).send({
-        error: "Unauthorized"
-      });
-    }
-  }
-});
-
-// Ruta protegida para cerrar sesión
-app.delete("/api/session", function (req, res) {
-  if (req.headers["authorization"]) {
-    const token = req.headers['authorization'].split(' ')[1];
-    try {
-      const decoded = jwt.verify(token, secretKey);
-      deleteSession(decoded.email)
-        .then((result) => {
-          if (result.deletedCount > 0) {
-            res.status(200).json({ message: "Logged out successfully" });
-          } else {
-            res.status(404).json({ message: "Session not found" });
-          }
-        })
-        .catch(err => {
-          console.error("Error deleting session", err);
-          res.status(500).json({ error: "Error during logout" });
-        });
-    } catch(e) {
-      res.status(401).json({ error: "Invalid token" });
-    }
-  } else {
-    res.status(401).json({ error: "No authorization token provided" });
-  }
-});
-
-// Rutas protegidas para usuarios restringidos
-app.post("/api/restricted_users", restricted_usersPost);
-app.delete("/api/restricted_users", restricted_usersDelete);
-app.get("/api/restricted_users", restricted_usersGet);
-app.patch("/api/restricted_users", restricted_usersPatch);
-app.put("/api/restricted_users", restricted_usersPatch);
-
-// Rutas para usuarios
-app.delete("/api/users", userDelete);
-app.post("/api/users", userPost);
-app.get("/api/users", userGet);
-app.patch("/api/users", userPatch);
-app.put("/api/users", userPatch);
-
-// Ruta para confirmar email
-app.get("/api/users/confirm", confirmEmail);
-
-app.listen(3000, () => console.log(`App listening on port 3000!`));

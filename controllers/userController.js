@@ -2,7 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const path = require('path');
-const CryptoJS = require('crypto-js');
+const bcrypt = require('bcrypt'); // Reemplazamos CryptoJS por bcrypt
+const saltRounds = 10; // Configuración estándar para bcrypt
 app.use(express.static(path.join(__dirname, 'public')));
 const User = require("../models/userModel");
 const Restricted_users = require("../models/restricted_usersModel");
@@ -11,13 +12,6 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
 
 const nodemailer = require('nodemailer');
-
-// Función para desencriptar valores
-const decryptValue = (encryptedValue) => {
-  const bytes = CryptoJS.AES.decrypt(encryptedValue, 'secret key');
-  const originalValue = bytes.toString(CryptoJS.enc.Utf8);
-  return originalValue;
-};
 
 const isAtLeast18YearsOld = (birthdate) => {
   const today = new Date();
@@ -61,18 +55,15 @@ const sendConfirmationEmail = (user) => {
   });
 };
 
-
 /**
  * Creates a user
  *
  * @param {*} req
  * @param {*} res
  */
-const userPost = (req, res) => {
+const userPost = async (req, res) => {
   let user = new User();
   user.email = req.body.email;
-  user.password = CryptoJS.AES.encrypt(req.body.password, 'secret key').toString(); // Cifra la contraseña
-  user.repeat_password = CryptoJS.AES.encrypt(req.body.repeat_password, 'secret key').toString(); // Cifra la contraseña repetida
   user.phone_number = req.body.phone_number;
   user.pin = req.body.pin;
   user.name = req.body.name;
@@ -81,53 +72,54 @@ const userPost = (req, res) => {
   user.birthdate = req.body.birthdate;
   user.state = req.body.state;
 
+  // Verifica que las contraseñas coincidan antes de hash
+  if (req.body.password !== req.body.repeat_password) {
+    return res.status(422).json({
+      error: 'Passwords do not match'
+    });
+  }
+
   // Verifica si el usuario tiene al menos 18 años
   if (!isAtLeast18YearsOld(user.birthdate)) {
-    res.status(422);
-    console.log('Error: User must be at least 18 years old');
-    return res.json({
+    return res.status(422).json({
       error: 'User must be at least 18 years old'
     });
   }
 
-  if (user.email && user.password && user.phone_number && user.pin && user.name && user.last_name && user.birthdate) {
-    // Primero verifica si el correo electrónico ya está registrado
-    User.findOne({ email: user.email })
-      .then(existingUser => {
-        if (existingUser) {
-          res.status(422);
-          console.log('Error: Email already registered');
-          return res.json({
-            error: 'Email already registered'
-          });
-        }
-        
-        // Si el correo electrónico no existe, procede a guardar el usuario
-        return user.save();
-      })
-      .then(savedUser => {
-        if (savedUser) {
-          if(savedUser.state == false){
-            sendConfirmationEmail(savedUser);
-          }
-          res.status(201); // CREATED
-          res.header({
-            'location': `/api/users/?id=${savedUser.id}`
-          });
-          res.json(savedUser);
-        }
-      })
-      .catch((err) => {
-        res.status(422);
-        console.log('Error while saving the user', err);
-        res.json({
-          error: 'There was an error saving the user'
+  if (user.email && req.body.password && user.phone_number && user.pin && user.name && user.last_name && user.birthdate) {
+    try {
+      // Primero verifica si el correo electrónico ya está registrado
+      const existingUser = await User.findOne({ email: user.email });
+      if (existingUser) {
+        return res.status(422).json({
+          error: 'Email already registered'
         });
+      }
+      
+      // Hash de contraseña con bcrypt
+      const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+      user.password = hashedPassword;
+      // Ya no necesitamos almacenar repeat_password, pero mantenemos compatibilidad
+      user.repeat_password = hashedPassword;
+      
+      // Guarda el usuario
+      const savedUser = await user.save();
+      
+      if (savedUser.state === false) {
+        sendConfirmationEmail(savedUser);
+      }
+      
+      res.status(201).header({
+        'location': `/api/users/?id=${savedUser.id}`
+      }).json(savedUser);
+    } catch (err) {
+      console.log('Error while saving the user', err);
+      res.status(422).json({
+        error: 'There was an error saving the user'
       });
+    }
   } else {
-    res.status(422);
-    console.log('Error: No valid data provided for user');
-    res.json({
+    res.status(422).json({
       error: 'No valid data provided for user'
     });
   }
@@ -139,15 +131,12 @@ const userPost = (req, res) => {
  * @param {*} req
  * @param {*} res
  */
-
 const userDelete = async (req, res) => {
   if (req.query && req.query.id) {
     try {
       const user = await User.findById(req.query.id).exec();
       if (!user) {
-        res.status(404);
-        console.log('Error while querying the user');
-        return res.json({ error: "User doesn't exist" });
+        return res.status(404).json({ error: "User doesn't exist" });
       }
 
       // Validar que el usuario logueado es el dueño de la cuenta
@@ -165,15 +154,14 @@ const userDelete = async (req, res) => {
       await user.deleteOne();
 
       // Respuesta con mensaje de éxito
-      res.status(200).json({ message: "User deleted successfully" });
+      return res.status(200).json({ message: "User deleted successfully" });
 
     } catch (err) {
-      res.status(422);
       console.log('Error while deleting the user', err);
-      res.json({ error: 'There was an error deleting the user' });
+      return res.status(422).json({ error: 'There was an error deleting the user' });
     }
   } else {
-    res.status(404).json({ error: "User doesn't exist" });
+    return res.status(404).json({ error: "User doesn't exist" });
   }
 };
 
@@ -190,9 +178,8 @@ const userGet = (req, res) => {
         res.json(user);
       })
       .catch(err => {
-        res.status(404);
-        console.log('error while queryting the user', err)
-        res.json({ error: "User doesnt exist" })
+        console.log('error while querying the user', err);
+        res.status(404).json({ error: "User doesn't exist" });
       });
   } else {
     // get all videos
@@ -201,8 +188,7 @@ const userGet = (req, res) => {
         res.json(user);
       })
       .catch(err => {
-        res.status(422);
-        res.json({ "error": err });
+        res.status(422).json({ error: err.message });
       });
   }
 };
@@ -217,7 +203,6 @@ const userGetEmail = function (email) {
  * @param {*} req
  * @param {*} res
  */
-
 const userPatch = async (req, res) => {
   if (!req.query || !req.query.id) {
       return res.status(400).json({ error: "Bad request: ID parameter is required" });
@@ -237,8 +222,16 @@ const userPatch = async (req, res) => {
 
       // Actualizar los campos proporcionados
       if (req.body.email) user.email = req.body.email;
-      if (req.body.password) user.password = CryptoJS.AES.encrypt(req.body.password, 'secret key').toString();
-      if (req.body.repeat_password) user.repeat_password = CryptoJS.AES.encrypt(req.body.repeat_password, 'secret key').toString();
+      
+      // Si se actualiza la contraseña, hash con bcrypt
+      if (req.body.password) {
+        if (req.body.password !== req.body.repeat_password) {
+          return res.status(422).json({ error: "Passwords do not match" });
+        }
+        user.password = await bcrypt.hash(req.body.password, saltRounds);
+        user.repeat_password = user.password; // Mantener consistencia
+      }
+      
       if (req.body.phone_number) user.phone_number = req.body.phone_number;
       if (req.body.pin) user.pin = req.body.pin;
       if (req.body.name) user.name = req.body.name;
@@ -249,14 +242,14 @@ const userPatch = async (req, res) => {
       const updatedUser = await user.save();
 
       // Respuesta con mensaje y datos actualizados
-      res.status(200).json({
+      return res.status(200).json({
           message: "User updated successfully",
           data: updatedUser
       });
 
   } catch (err) {
       console.log('Error while updating the user', err);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -276,11 +269,11 @@ const confirmEmail = async (req, res) => {
 
       user.state = true;
       await user.save();
-      res.status(200).sendFile(path.join(__dirname, 'views', 'confirmation.html'));
+      return res.status(200).sendFile(path.join(__dirname, 'views', 'confirmation.html'));
 
   } catch (err) {
       console.log('Error while confirming the email', err);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
