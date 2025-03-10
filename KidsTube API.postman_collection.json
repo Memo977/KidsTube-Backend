@@ -1,0 +1,897 @@
+{
+	"info": {
+		"_postman_id": "a7089c38-6443-464a-81da-8f7b25d03722",
+		"name": "KidsTube API",
+		"description": "API para gestionar una plataforma de contenido de YouTube para niños",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "41635577"
+	},
+	"item": [
+		{
+			"name": "1. Autenticación",
+			"item": [
+				{
+					"name": "Registro de Usuario (Padre)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"padre@example.com\",\n  \"password\": \"Password123\",\n  \"repeat_password\": \"Password123\",\n  \"phone_number\": 1234567890,\n  \"pin\": \"123456\",\n  \"name\": \"Nombre\",\n  \"last_name\": \"Apellido\",\n  \"country\": \"País\",\n  \"birthdate\": \"1985-01-01\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Registra un nuevo usuario padre. Requiere datos como email, contraseña, nombre y fecha de nacimiento (debe ser mayor de 18 años)."
+					},
+					"response": []
+				},
+				{
+					"name": "Confirmación de Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/confirm?id={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"confirm"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Confirma el email de un usuario recién registrado. El ID del usuario se envía por email."
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Obtener Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"pm.environment.set(\"token\", jsonData.token);",
+									"console.log('Token guardado en variable de entorno: ' + jsonData.token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"memoochoa097@gmail.com\",\n  \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/session",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"session"
+							]
+						},
+						"description": "Inicia sesión como usuario padre. Devuelve un token JWT que se debe usar en solicitudes posteriores."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout (Revocar Token)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/session",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"session"
+							]
+						},
+						"description": "Cierra la sesión revocando el token JWT."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para registro, login y logout."
+		},
+		{
+			"name": "2. Perfiles Restringidos",
+			"item": [
+				{
+					"name": "Listar Perfiles Restringidos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/restricted_users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"restricted_users"
+							]
+						},
+						"description": "Obtiene todos los perfiles restringidos creados por el usuario padre."
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Perfil Restringido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"console.log('Respuesta completa:', JSON.stringify(jsonData, null, 2));",
+									"pm.environment.set(\"restricted_user_id\", jsonData._id);",
+									"console.log('ID de perfil restringido guardado: ' + jsonData._id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"Memo\",\n  \"pin\": \"123456\",\n  \"avatar\": \"https://loodibee.com/wp-content/uploads/Netflix-avatar-2.png\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/restricted_users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"restricted_users"
+							]
+						},
+						"description": "Crea un nuevo perfil restringido (hijo) con nombre, PIN y avatar."
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Perfil Restringido",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/restricted_users?id={{restricted_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"restricted_users"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{restricted_user_id}}"
+								}
+							]
+						},
+						"description": "Obtiene los detalles de un perfil restringido específico."
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Perfil Restringido",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"Memo\",\n  \"pin\": \"654321\",\n  \"avatar\": \"https://loodibee.com/wp-content/uploads/Netflix-avatar-4.png\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/restricted_users?id={{restricted_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"restricted_users"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{restricted_user_id}}"
+								}
+							]
+						},
+						"description": "Actualiza la información de un perfil restringido."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Perfil Restringido",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/restricted_users?id={{restricted_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"restricted_users"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{restricted_user_id}}"
+								}
+							]
+						},
+						"description": "Elimina un perfil restringido."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestionar perfiles restringidos (hijos)."
+		},
+		{
+			"name": "3. Playlists",
+			"item": [
+				{
+					"name": "Listar Playlists",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/playlists",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"playlists"
+							]
+						},
+						"description": "Obtiene todas las playlists creadas por el usuario padre."
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Playlist",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"console.log('Respuesta completa:', JSON.stringify(jsonData, null, 2));",
+									"pm.environment.set(\"playlist_id\", jsonData._id);",
+									"console.log('ID de playlist guardado: ' + jsonData._id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Playlist Series Infantiles\",\n  \"associatedProfiles\": [\"{{restricted_user_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/playlists",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"playlists"
+							]
+						},
+						"description": "Crea una nueva playlist y la asocia a perfiles restringidos (opcional)."
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Playlist",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/playlists?id={{playlist_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"playlists"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{playlist_id}}"
+								}
+							]
+						},
+						"description": "Obtiene los detalles de una playlist específica, incluyendo el conteo de videos."
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Playlist",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Playlist Educativa Actualizada\",\n  \"associatedProfiles\": [\"{{restricted_user_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/playlists?id={{playlist_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"playlists"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{playlist_id}}"
+								}
+							]
+						},
+						"description": "Actualiza la información de una playlist y sus asociaciones."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Playlist",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/playlists?id={{playlist_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"playlists"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{playlist_id}}"
+								}
+							]
+						},
+						"description": "Elimina una playlist y todos sus videos asociados."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestionar playlists."
+		},
+		{
+			"name": "4. Videos",
+			"item": [
+				{
+					"name": "Listar Videos de Playlist",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/videos?playlistId={{playlist_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "playlistId",
+									"value": "{{playlist_id}}"
+								}
+							]
+						},
+						"description": "Obtiene todos los videos de una playlist específica."
+					},
+					"response": []
+				},
+				{
+					"name": "Agregar Video a Playlist",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"console.log('Respuesta completa:', JSON.stringify(jsonData, null, 2));",
+									"pm.environment.set(\"video_id\", jsonData._id);",
+									"console.log('ID de video guardado: ' + jsonData._id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Dora la Exploradora\",\n  \"youtubeUrl\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"description\": \"Video de Dora la Exploradora\",\n  \"playlistId\": \"{{playlist_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/videos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"videos"
+							]
+						},
+						"description": "Agrega un nuevo video a una playlist existente."
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Video",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/videos?id={{video_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{video_id}}"
+								}
+							]
+						},
+						"description": "Obtiene los detalles de un video específico."
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Video",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Video Educativo Actualizado\",\n  \"description\": \"Descripción actualizada\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/videos?id={{video_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{video_id}}"
+								}
+							]
+						},
+						"description": "Actualiza la información de un video."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Video",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/videos?id={{video_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{video_id}}"
+								}
+							]
+						},
+						"description": "Elimina un video de una playlist."
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Videos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/videos?search=educativo",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "educativo"
+								}
+							]
+						},
+						"description": "Busca videos por nombre o descripción."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestionar videos en playlists."
+		},
+		{
+			"name": "5. Acceso Perfiles Restringidos",
+			"item": [
+				{
+					"name": "Listar Perfiles (Pantalla Inicial)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/public/profiles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"public",
+								"profiles"
+							]
+						},
+						"description": "Obtiene la lista de perfiles restringidos para mostrar en la pantalla inicial (solo nombres y avatares)."
+					},
+					"response": []
+				},
+				{
+					"name": "Verificar PIN de Perfil",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.environment.set(\"profile_pin\", requestBody.pin);",
+									"console.log('PIN guardado: ' + requestBody.pin);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"profileId\": \"{{restricted_user_id}}\",\n  \"pin\": \"654321\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/public/verify-pin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"public",
+								"verify-pin"
+							]
+						},
+						"description": "Verifica el PIN de un perfil restringido para permitir acceso."
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Playlists Asignadas (PIN)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-restricted-pin",
+								"value": "{{profile_pin}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/restricted/playlists",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"restricted",
+								"playlists"
+							]
+						},
+						"description": "Obtiene las playlists asignadas al perfil restringido usando autenticación por PIN."
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Videos de Playlist (PIN)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-restricted-pin",
+								"value": "{{profile_pin}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/restricted/videos?playlistId={{playlist_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"restricted",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "playlistId",
+									"value": "{{playlist_id}}"
+								}
+							]
+						},
+						"description": "Obtiene los videos de una playlist usando autenticación por PIN."
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Videos (PIN)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-restricted-pin",
+								"value": "{{profile_pin}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/restricted/videos?search=dora",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"restricted",
+								"videos"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "dora"
+								}
+							]
+						},
+						"description": "Busca videos por nombre o descripción (solo en playlists permitidas) usando autenticación por PIN."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para el acceso de perfiles restringidos (niños)."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
