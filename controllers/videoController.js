@@ -11,22 +11,22 @@ const videoPost = async (req, res) => {
     try {
         // Verificar que req.user existe antes de continuar
         if (!req.user) {
-            return res.status(401).json({ error: 'Autenticación requerida' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         if (!req.body.playlistId) {
-            return res.status(422).json({ error: 'Se requiere el ID de la playlist' });
+            return res.status(422).json({ error: 'Playlist ID is required' });
         }
 
         // Verificar que la playlist existe y pertenece al usuario
         const playlist = await Playlist.findById(req.body.playlistId);
         
         if (!playlist) {
-            return res.status(404).json({ error: 'Playlist no encontrada' });
+            return res.status(404).json({ error: 'Playlist not found' });
         }
         
         if (playlist.adminId !== req.user.id) {
-            return res.status(403).json({ error: 'No tienes permiso para añadir videos a esta playlist' });
+            return res.status(403).json({ error: "You don't have permission to add videos to this playlist" });
         }
 
         // Crear el nuevo video
@@ -40,7 +40,7 @@ const videoPost = async (req, res) => {
 
         // Validar datos requeridos
         if (!video.name || !video.youtubeUrl) {
-            return res.status(422).json({ error: 'El nombre y la URL de YouTube son obligatorios' });
+            return res.status(422).json({ error: 'Name and YouTube URL are required' });
         }
 
         // Guardar en la base de datos
@@ -50,14 +50,14 @@ const videoPost = async (req, res) => {
             'location': `/api/videos?id=${savedVideo.id}`
         }).json(savedVideo);
     } catch (error) {
-        console.error('Error al crear el video:', error);
+        console.error('Error creating video:', error);
         
         // Si el error es de validación (URL de YouTube inválida)
         if (error.name === 'ValidationError') {
             return res.status(422).json({ error: error.message });
         }
         
-        res.status(500).json({ error: 'Error al crear el video' });
+        res.status(500).json({ error: 'Error creating video' });
     }
 };
 
@@ -73,14 +73,14 @@ const videoGet = async (req, res) => {
             const video = await Video.findById(req.query.id);
             
             if (!video) {
-                return res.status(404).json({ error: "Video no encontrado" });
+                return res.status(404).json({ error: "Video not found" });
             }
             
             // Verificar permisos (debe ser el propietario o estar en la lista de usuarios restringidos)
             const playlist = await Playlist.findById(video.playlistId);
             
             if (!playlist) {
-                return res.status(404).json({ error: "Playlist asociada no encontrada" });
+                return res.status(404).json({ error: "Associated playlist not found" });
             }
             
             // Verificar req.user antes de acceder a req.user.id
@@ -88,7 +88,7 @@ const videoGet = async (req, res) => {
             const isRestrictedUser = req.restrictedUserId && playlist.associatedProfiles.includes(req.restrictedUserId);
             
             if (!isAdmin && !isRestrictedUser) {
-                return res.status(403).json({ error: "No tienes permiso para ver este video" });
+                return res.status(403).json({ error: "You don't have permission to view this video" });
             }
             
             return res.status(200).json(video);
@@ -99,7 +99,7 @@ const videoGet = async (req, res) => {
             const playlist = await Playlist.findById(req.query.playlistId);
             
             if (!playlist) {
-                return res.status(404).json({ error: "Playlist no encontrada" });
+                return res.status(404).json({ error: "Playlist not found" });
             }
             
             // Verificar permisos
@@ -108,7 +108,7 @@ const videoGet = async (req, res) => {
             const isRestrictedUser = req.restrictedUserId && playlist.associatedProfiles.includes(req.restrictedUserId);
             
             if (!isAdmin && !isRestrictedUser) {
-                return res.status(403).json({ error: "No tienes permiso para ver estos videos" });
+                return res.status(403).json({ error: "You don't have permission to view these videos" });
             }
             
             const videos = await Video.find({ playlistId: req.query.playlistId });
@@ -147,7 +147,7 @@ const videoGet = async (req, res) => {
                 
                 return res.status(200).json(videos);
             } else {
-                return res.status(401).json({ error: "Autenticación requerida" });
+                return res.status(401).json({ error: "Authentication required" });
             }
         } 
         
@@ -168,12 +168,12 @@ const videoGet = async (req, res) => {
                 
                 return res.status(200).json(videos);
             } else {
-                return res.status(401).json({ error: "Autenticación requerida" });
+                return res.status(401).json({ error: "Authentication required" });
             }
         }
     } catch (error) {
-        console.error('Error al obtener los videos:', error);
-        res.status(500).json({ error: 'Error al obtener los videos' });
+        console.error('Error getting videos:', error);
+        res.status(500).json({ error: 'Error getting videos' });
     }
 };
 
@@ -186,22 +186,22 @@ const videoPatch = async (req, res) => {
     try {
         // Verificar que req.user existe antes de continuar
         if (!req.user) {
-            return res.status(401).json({ error: 'Autenticación requerida' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         if (!req.query || !req.query.id) {
-            return res.status(400).json({ error: "Se requiere el ID del video" });
+            return res.status(400).json({ error: "Video ID is required" });
         }
 
         const video = await Video.findById(req.query.id);
         
         if (!video) {
-            return res.status(404).json({ error: "Video no encontrado" });
+            return res.status(404).json({ error: "Video not found" });
         }
         
         // Verificar que el usuario sea el propietario del video
         if (video.adminId !== req.user.id) {
-            return res.status(403).json({ error: "No tienes permiso para editar este video" });
+            return res.status(403).json({ error: "You don't have permission to edit this video" });
         }
         
         // Actualizar campos
@@ -214,11 +214,11 @@ const videoPatch = async (req, res) => {
             const playlist = await Playlist.findById(req.body.playlistId);
             
             if (!playlist) {
-                return res.status(404).json({ error: 'Playlist no encontrada' });
+                return res.status(404).json({ error: 'Playlist not found' });
             }
             
             if (playlist.adminId !== req.user.id) {
-                return res.status(403).json({ error: 'No tienes permiso para mover videos a esta playlist' });
+                return res.status(403).json({ error: "You don't have permission to move videos to this playlist" });
             }
             
             video.playlistId = req.body.playlistId;
@@ -228,18 +228,18 @@ const videoPatch = async (req, res) => {
         const updatedVideo = await video.save();
         
         res.status(200).json({
-            message: "Video actualizado correctamente",
+            message: "Video updated successfully",
             data: updatedVideo
         });
     } catch (error) {
-        console.error('Error al actualizar el video:', error);
+        console.error('Error updating video:', error);
         
         // Si el error es de validación (URL de YouTube inválida)
         if (error.name === 'ValidationError') {
             return res.status(422).json({ error: error.message });
         }
         
-        res.status(500).json({ error: 'Error al actualizar el video' });
+        res.status(500).json({ error: 'Error updating video' });
     }
 };
 
@@ -252,31 +252,31 @@ const videoDelete = async (req, res) => {
     try {
         // Verificar que req.user existe antes de continuar
         if (!req.user) {
-            return res.status(401).json({ error: 'Autenticación requerida' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         if (!req.query || !req.query.id) {
-            return res.status(400).json({ error: "Se requiere el ID del video" });
+            return res.status(400).json({ error: "Video ID is required" });
         }
 
         const video = await Video.findById(req.query.id);
         
         if (!video) {
-            return res.status(404).json({ error: "Video no encontrado" });
+            return res.status(404).json({ error: "Video not found" });
         }
         
         // Verificar que el usuario sea el propietario del video
         if (video.adminId !== req.user.id) {
-            return res.status(403).json({ error: "No tienes permiso para eliminar este video" });
+            return res.status(403).json({ error: "You don't have permission to delete this video" });
         }
         
         // Eliminar el video
         await video.deleteOne();
         
-        res.status(200).json({ message: "Video eliminado correctamente" });
+        res.status(200).json({ message: "Video deleted successfully" });
     } catch (error) {
-        console.error('Error al eliminar el video:', error);
-        res.status(500).json({ error: 'Error al eliminar el video' });
+        console.error('Error deleting video:', error);
+        res.status(500).json({ error: 'Error deleting video' });
     }
 };
 

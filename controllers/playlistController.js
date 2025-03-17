@@ -11,7 +11,7 @@ const playlistPost = async (req, res) => {
     try {
         // Verificar que req.user existe antes de acceder a req.user.id
         if (!req.user) {
-            return res.status(401).json({ error: 'Autenticación requerida' });
+            return res.status(401).json({ error: 'Authentication required' });
         }
 
         // Crear la nueva playlist
@@ -23,7 +23,7 @@ const playlistPost = async (req, res) => {
 
         // Validar datos
         if (!playlist.name) {
-            return res.status(422).json({ error: 'El nombre de la playlist es obligatorio' });
+            return res.status(422).json({ error: 'Playlist name is required' });
         }
 
         // Guardar en la base de datos
@@ -33,8 +33,8 @@ const playlistPost = async (req, res) => {
             'location': `/api/playlists/?id=${savedPlaylist.id}`
         }).json(savedPlaylist);
     } catch (error) {
-        console.error('Error al crear la playlist:', error);
-        res.status(422).json({ error: 'Error al crear la playlist' });
+        console.error('Error creating playlist:', error);
+        res.status(422).json({ error: 'Error creating playlist' });
     }
 };
 
@@ -50,7 +50,7 @@ const playlistGet = async (req, res) => {
             const playlist = await Playlist.findById(req.query.id);
             
             if (!playlist) {
-                return res.status(404).json({ error: "Playlist no encontrada" });
+                return res.status(404).json({ error: "Playlist not found" });
             }
             
             // Verificar que el usuario sea el propietario de la playlist o un usuario restringido
@@ -59,7 +59,7 @@ const playlistGet = async (req, res) => {
             const isRestrictedUser = req.restrictedUserId && playlist.associatedProfiles.includes(req.restrictedUserId);
             
             if (!isAdmin && !isRestrictedUser) {
-                return res.status(403).json({ error: "No tienes permiso para ver esta playlist" });
+                return res.status(403).json({ error: "You don't have permission to view this playlist" });
             }
             
             // Obtener conteo de videos
@@ -94,7 +94,7 @@ const playlistGet = async (req, res) => {
         else {
             // Verificar req.user antes de acceder a req.user.id
             if (!req.user && !req.restrictedUserId) {
-                return res.status(401).json({ error: "Autenticación requerida" });
+                return res.status(401).json({ error: "Authentication required" });
             }
             
             let playlists;
@@ -120,8 +120,8 @@ const playlistGet = async (req, res) => {
             return res.status(200).json(playlistsWithCount);
         }
     } catch (error) {
-        console.error('Error al obtener las playlists:', error);
-        res.status(500).json({ error: 'Error al obtener las playlists' });
+        console.error('Error getting playlists:', error);
+        res.status(500).json({ error: 'Error getting playlists' });
     }
 };
 
@@ -133,23 +133,23 @@ const playlistGet = async (req, res) => {
 const playlistPatch = async (req, res) => {
     try {
         if (!req.query || !req.query.id) {
-            return res.status(400).json({ error: "Se requiere el ID de la playlist" });
+            return res.status(400).json({ error: "Playlist ID is required" });
         }
 
         // Verificar que req.user existe antes de continuar
         if (!req.user) {
-            return res.status(401).json({ error: "Autenticación requerida" });
+            return res.status(401).json({ error: "Authentication required" });
         }
 
         const playlist = await Playlist.findById(req.query.id);
         
         if (!playlist) {
-            return res.status(404).json({ error: "Playlist no encontrada" });
+            return res.status(404).json({ error: "Playlist not found" });
         }
         
         // Verificar que el usuario sea el propietario de la playlist
         if (playlist.adminId !== req.user.id) {
-            return res.status(403).json({ error: "No tienes permiso para editar esta playlist" });
+            return res.status(403).json({ error: "You don't have permission to edit this playlist" });
         }
         
         // Actualizar campos
@@ -160,12 +160,12 @@ const playlistPatch = async (req, res) => {
         const updatedPlaylist = await playlist.save();
         
         res.status(200).json({
-            message: "Playlist actualizada correctamente",
+            message: "Playlist updated successfully",
             data: updatedPlaylist
         });
     } catch (error) {
-        console.error('Error al actualizar la playlist:', error);
-        res.status(500).json({ error: 'Error al actualizar la playlist' });
+        console.error('Error updating playlist:', error);
+        res.status(500).json({ error: 'Error updating playlist' });
     }
 };
 
@@ -177,23 +177,23 @@ const playlistPatch = async (req, res) => {
 const playlistDelete = async (req, res) => {
     try {
         if (!req.query || !req.query.id) {
-            return res.status(400).json({ error: "Se requiere el ID de la playlist" });
+            return res.status(400).json({ error: "Playlist ID is required" });
         }
 
         // Verificar que req.user existe antes de continuar
         if (!req.user) {
-            return res.status(401).json({ error: "Autenticación requerida" });
+            return res.status(401).json({ error: "Authentication required" });
         }
 
         const playlist = await Playlist.findById(req.query.id);
         
         if (!playlist) {
-            return res.status(404).json({ error: "Playlist no encontrada" });
+            return res.status(404).json({ error: "Playlist not found" });
         }
         
         // Verificar que el usuario sea el propietario de la playlist
         if (playlist.adminId !== req.user.id) {
-            return res.status(403).json({ error: "No tienes permiso para eliminar esta playlist" });
+            return res.status(403).json({ error: "You don't have permission to delete this playlist" });
         }
         
         // Eliminar todos los videos asociados a esta playlist
@@ -202,10 +202,10 @@ const playlistDelete = async (req, res) => {
         // Eliminar la playlist
         await playlist.deleteOne();
         
-        res.status(200).json({ message: "Playlist y videos asociados eliminados correctamente" });
+        res.status(200).json({ message: "Playlist and associated videos deleted successfully" });
     } catch (error) {
-        console.error('Error al eliminar la playlist:', error);
-        res.status(500).json({ error: 'Error al eliminar la playlist' });
+        console.error('Error deleting playlist:', error);
+        res.status(500).json({ error: 'Error deleting playlist' });
     }
 };
 

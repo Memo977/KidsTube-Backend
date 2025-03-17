@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const authenticate = require('../middleware/authMiddleware');
 const { 
   userPost, 
   userGet, 
@@ -8,35 +9,11 @@ const {
   confirmEmail
 } = require('../controllers/userController');
 
-/**
- * Crear un nuevo usuario
- * POST /api/users
- */
+// Rutas públicas
 router.post('/', userPost);
+router.get('/confirm', confirmEmail); 
 
-/**
- * Obtener todos los usuarios o un usuario específico
- * GET /api/users
- * GET /api/users?id={userId}
- */
-router.get('/', userGet);
-
-/**
- * Actualizar un usuario
- * PATCH /api/users?id={userId}
- */
-router.patch('/', userPatch);
-
-/**
- * Eliminar un usuario
- * DELETE /api/users?id={userId}
- */
-router.delete('/', userDelete);
-
-/**
- * Confirmar email de usuario
- * GET /api/users/confirm?id={userId}
- */
-router.get('/confirm', confirmEmail);
+// Rutas protegidas
+router.get('/', authenticate, userGet);
 
 module.exports = router;

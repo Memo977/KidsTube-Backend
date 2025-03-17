@@ -34,21 +34,21 @@ app.use(bodyParser.json());
 connectDatabase();
 
 // Rutas públicas (no requieren autenticación)
-app.use('/api/session', authRoutes);         // Login/logout
-app.use('/api/users', userRoutes);           // Registro y confirmación email
-app.use('/api/public', publicRoutes);        // Datos públicos (avatares de perfiles, etc.)
+app.use('/api/session', authRoutes);         
+app.use('/api/users', userRoutes);           
+app.use('/api/public', publicRoutes);        
 
 // Middleware de autenticación para las rutas protegidas del admin
 app.use('/api/admin', authenticate);
 
 // Rutas protegidas por JWT (requieren inicio de sesión del padre)
-app.use('/api/admin/restricted_users', restrictedUserRoutes);  // CRUD de perfiles de niños
-app.use('/api/admin/playlists', playlistRoutes);              // CRUD de playlists
-app.use('/api/admin/videos', videoRoutes);                    // CRUD de videos
+app.use('/api/admin/restricted_users', restrictedUserRoutes);  
+app.use('/api/admin/playlists', playlistRoutes);              
+app.use('/api/admin/videos', videoRoutes);                    
 
 // Rutas protegidas por PIN (accesibles para perfiles de niños)
-app.use('/api/restricted/playlists', authenticateRestrictedUser, playlistRoutes);  // Ver playlists
-app.use('/api/restricted/videos', authenticateRestrictedUser, videoRoutes);        // Ver y buscar videos
+app.use('/api/restricted/playlists', authenticateRestrictedUser, playlistRoutes);  
+app.use('/api/restricted/videos', authenticateRestrictedUser, videoRoutes);       
 
 // Mantener retrocompatibilidad con rutas anteriores
 app.use('/api/restricted_users', authenticate, restrictedUserRoutes);

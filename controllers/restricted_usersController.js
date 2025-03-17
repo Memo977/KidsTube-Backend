@@ -8,7 +8,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 /**
- * Creates a Restricted_users
+ * Crea un usuario restringido
  *
  * @param {*} req
  * @param {*} res
@@ -42,7 +42,7 @@ const restricted_usersPost = async (req, res) => {
 };
 
 /**
- * Delete a restricted users
+ * Elimina un usuario restringido
  *
  * @param {*} req
  * @param {*} res
@@ -78,7 +78,7 @@ const restricted_usersDelete = async (req, res) => {
 };
 
 /** 
- * Get one or all restricted users
+ * Obtiene uno o todos los usuarios restringidos
  *
  * @param {*} req
  * @param {*} res
@@ -133,7 +133,7 @@ const restricted_usersGet = async (req, res) => {
 };
 
 /**
- * Updates a restricted users
+ * Actualiza un usuario restringido
  *
  * @param {*} req
  * @param {*} res
